@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Score from "./Score";
 import FallingWord from "./FallingWord";
 
@@ -16,6 +16,42 @@ const WORDS = [
 const GAME_HEIGHT = 520;
 const SAND_LINE = GAME_HEIGHT - 70;
 const WORDS_PER_WAVE = 8;
+
+/* ── Difficulty Configs ─────────────────────────── */
+type Difficulty = "easy" | "medium" | "hard";
+
+const DIFFICULTY_CONFIG = {
+    easy: {
+        label: "EASY",
+        desc: "Relaxed pace",
+        baseSpawn: 2800,
+        spawnDecay: 100,
+        minSpawn: 1000,
+        baseFall: 0.8,
+        fallGrowth: 0.15,
+        maxFall: 2.5,
+    },
+    medium: {
+        label: "MEDIUM",
+        desc: "Balanced challenge",
+        baseSpawn: 2200,
+        spawnDecay: 150,
+        minSpawn: 700,
+        baseFall: 1.2,
+        fallGrowth: 0.25,
+        maxFall: 4,
+    },
+    hard: {
+        label: "HARD",
+        desc: "Unforgiving speed",
+        baseSpawn: 1600,
+        spawnDecay: 200,
+        minSpawn: 400,
+        baseFall: 1.8,
+        fallGrowth: 0.35,
+        maxFall: 6,
+    },
+};
 
 /* ── Interfaces ─────────────────────────────────── */
 interface FallingWordData {
@@ -47,6 +83,8 @@ export default function Game() {
     const [lives, setLives] = useState(3);
     const [gameStarted, setGameStarted] = useState(false);
     const [gameOver, setGameOver] = useState(false);
+    const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
+    const [tempDifficulty, setTempDifficulty] = useState<Difficulty>("medium");
     const [combo, setCombo] = useState(0);
     const [maxCombo, setMaxCombo] = useState(0);
     const [wave, setWave] = useState(1);
@@ -60,12 +98,14 @@ export default function Game() {
 
     useEffect(() => { gameOverRef.current = gameOver; }, [gameOver]);
 
-    /* ── Speeds ─────────────────────────────────── */
-    const spawnInterval = Math.max(2200 - wave * 150, 700);
-    const fallSpeed = Math.min(1.2 + wave * 0.25, 4);
+    /* ── Speeds (driven by difficulty) ──────────── */
+    const config = difficulty ? DIFFICULTY_CONFIG[difficulty] : DIFFICULTY_CONFIG.medium;
+    const spawnInterval = Math.max(config.baseSpawn - wave * config.spawnDecay, config.minSpawn);
+    const fallSpeed = Math.min(config.baseFall + wave * config.fallGrowth, config.maxFall);
 
     /* ── Start / Restart ───────────────────────── */
-    const startGame = useCallback(() => {
+    const startGame = useCallback((diff: Difficulty) => {
+        setDifficulty(diff);
         setScore(0);
         setLives(3);
         setFallingWords([]);
@@ -81,6 +121,24 @@ export default function Game() {
         setScorePops([]);
         setWarning(null);
         setTimeout(() => inputRef.current?.focus(), 100);
+    }, []);
+
+    /* ── Back to Home ──────────────────────────── */
+    const goHome = useCallback(() => {
+        setGameStarted(false);
+        setGameOver(false);
+        setDifficulty(null);
+        setFallingWords([]);
+        setInput("");
+        setScore(0);
+        setLives(3);
+        setCombo(0);
+        setMaxCombo(0);
+        setWave(1);
+        setWordsHarvested(0);
+        setParticles([]);
+        setScorePops([]);
+        setWarning(null);
     }, []);
 
     /* ── Spawn Words ───────────────────────────── */
@@ -224,12 +282,12 @@ export default function Game() {
                 className="text-xs tracking-[0.5em] uppercase mb-8"
                 style={{ fontFamily: "var(--font-terminal)", color: "var(--matrix-dark)" }}
             >
-                {">"} speed.is" everything_ <span className="blink">▌</span>
+                {">"} speed.is_everything_ <span className="blink">▌</span>
             </p>
 
             {/* Game Arena */}
             <div
-                className="relative w-full max-w-2xl border-glow scanlines crt-vignette"
+                className="relative w-full max-w-2xl border-glow scanlines crt-vignette overflow-hidden"
                 style={{
                     height: `${GAME_HEIGHT}px`,
                     borderRadius: "4px",
@@ -262,6 +320,12 @@ export default function Game() {
                 {/* ── Active Game ─────────────────── */}
                 {gameStarted && !gameOver ? (
                     <>
+                        {/* Status bar */}
+                        <div className="absolute top-4 left-5 right-5 z-20 flex justify-between items-start">
+                            <Score score={score} combo={combo} wave={wave} wordsHarvested={wordsHarvested} />
+                            {renderLives()}
+                        </div>
+
                         {fallingWords.map((word) => (
                             <FallingWord
                                 key={word.id}
@@ -305,6 +369,7 @@ export default function Game() {
                                 style={{
                                     top: "45%",
                                     left: "50%",
+                                    transform: "translate(-50%, -50%)",
                                     fontFamily: "var(--font-terminal)",
                                     fontSize: "1.2rem",
                                     letterSpacing: "0.25em",
@@ -317,18 +382,10 @@ export default function Game() {
                             </div>
                         )}
 
-                        {/* HUD */}
-                        <div className="absolute top-4 left-5 z-20">
-                            <Score score={score} combo={combo} wave={wave} wordsHarvested={wordsHarvested} />
-                        </div>
-                        <div className="absolute top-4 right-5 z-20">
-                            {renderLives()}
-                        </div>
-
-                        {/* Input */}
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-full px-8 z-30">
-                            <div className="flex items-center gap-2">
-                                <span style={{ color: "var(--matrix-mid)", fontFamily: "var(--font-terminal)", fontSize: "14px" }}>{">"}</span>
+                        {/* Input Area */}
+                        <div className="absolute bottom-3 left-0 right-0 px-8 z-30">
+                            <div className="flex items-center gap-2 max-w-sm mx-auto">
+                                <span className="text-sm font-terminal" style={{ color: "var(--matrix-mid)" }}>{">"}</span>
                                 <input
                                     ref={inputRef}
                                     autoFocus
@@ -343,18 +400,18 @@ export default function Game() {
                         </div>
                     </>
                 ) : (
-                    /* ── Start / Game Over ─────────── */
+                    /* ── Overlay: Start / Game Over ─────────── */
                     <div
-                        className="absolute inset-0 flex flex-col items-center justify-center z-50"
-                        style={{ background: "rgba(0, 0, 0, 0.9)" }}
+                        className="absolute inset-0 flex flex-col items-center justify-center z-50 p-6"
+                        style={{ background: "rgba(0, 0, 0, 0.95)" }}
                     >
                         {gameOver ? (
-                            <div className="text-center" style={{ fontFamily: "var(--font-terminal)" }}>
-                                <p className="text-xs tracking-[0.5em] uppercase mb-3" style={{ color: "var(--matrix-dark)" }}>
-                                    // process terminated
+                            <div className="text-center w-full max-w-sm" style={{ fontFamily: "var(--font-terminal)" }}>
+                                <p className="text-[10px] tracking-[0.4em] uppercase mb-1" style={{ color: "var(--matrix-dark)" }}>
+                                    // access_revoked
                                 </p>
                                 <h2
-                                    className="text-4xl mb-4 uppercase tracking-[0.2em]"
+                                    className="text-4xl mb-6 uppercase tracking-[0.1em]"
                                     style={{
                                         color: "var(--matrix-danger)",
                                         textShadow: "0 0 20px rgba(255, 23, 68, 0.4)",
@@ -362,52 +419,133 @@ export default function Game() {
                                 >
                                     GAME OVER
                                 </h2>
-                                <div className="h-px w-48 mx-auto my-5" style={{ background: "linear-gradient(90deg, transparent, var(--matrix-dark), transparent)" }} />
-                                <p className="text-sm mb-1" style={{ color: "var(--matrix-mid)" }}>
-                                    FINAL_SCORE: <span style={{ color: "var(--matrix-green)" }}>{score}</span>
-                                </p>
-                                <p className="text-xs mb-1" style={{ color: "var(--matrix-dark)" }}>
-                                    MAX_COMBO: x{maxCombo} | WAVE: {wave} | TYPED: {wordsHarvested}
-                                </p>
-                                <div className="h-px w-32 mx-auto my-5" style={{ background: "linear-gradient(90deg, transparent, rgba(0,255,65,0.15), transparent)" }} />
+                                <div className="space-y-4 mb-10">
+                                    <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+                                        <span style={{ color: "var(--matrix-mid)" }}>FINAL_SCORE</span>
+                                        <span style={{ color: "var(--matrix-green)" }} className="text-xl">{score}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span style={{ color: "var(--matrix-dark)" }}>MAX_COMBO</span>
+                                        <span style={{ color: "var(--matrix-mid)" }}>x{maxCombo}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span style={{ color: "var(--matrix-dark)" }}>WAVE_REACHED</span>
+                                        <span style={{ color: "var(--matrix-mid)" }}>{wave}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span style={{ color: "var(--matrix-dark)" }}>WORDS_TYPED</span>
+                                        <span style={{ color: "var(--matrix-mid)" }}>{wordsHarvested}</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={() => startGame(difficulty || "medium")}
+                                        className="matrix-button py-3 px-10 text-sm uppercase tracking-widest bg-white/5 hover:bg-white/10"
+                                    >
+                                        [ RESTART_SESSION ]
+                                    </button>
+                                    <button
+                                        onClick={goHome}
+                                        className="matrix-button py-2 px-6 text-[10px] uppercase tracking-widest opacity-60 hover:opacity-100"
+                                    >
+                                        [ BACK_TO_HOME ]
+                                    </button>
+                                </div>
                             </div>
                         ) : (
-                            <div className="text-center" style={{ fontFamily: "var(--font-terminal)" }}>
-                                <p className="text-xs tracking-[0.5em] uppercase mb-4" style={{ color: "var(--matrix-dark)" }}>
-                                    // initializing program
+                            <div className="text-center w-full max-w-sm" style={{ fontFamily: "var(--font-terminal)" }}>
+                                <p className="text-[10px] tracking-[0.4em] uppercase mb-2" style={{ color: "var(--matrix-dark)" }}>
+                                    // connection_established
                                 </p>
                                 <h2
-                                    className="text-3xl mb-4 uppercase tracking-[0.15em]"
+                                    className="text-3xl mb-8 uppercase tracking-[0.1em]"
                                     style={{
                                         color: "var(--matrix-green)",
                                         textShadow: "0 0 15px rgba(0, 255, 65, 0.3)",
                                     }}
                                 >
-                                    READY TO RUSH?
+                                    LOGIN_SYSTEM
                                 </h2>
-                                <div className="h-px w-48 mx-auto my-5" style={{ background: "linear-gradient(90deg, transparent, var(--matrix-dark), transparent)" }} />
-                                <p className="text-xs mb-1" style={{ color: "var(--matrix-mid)" }}>
-                                    {">"} type falling words | +5 pts per word
-                                </p>
-                                <p className="text-xs mb-8" style={{ color: "var(--matrix-dark)" }}>
-                                    {">"} chain combos for up to x8 multiplier
-                                </p>
+
+                                <div className="mb-8">
+                                    <p className="text-[10px] mb-4 uppercase tracking-[0.2em]" style={{ color: "var(--matrix-mid)" }}>
+                                        SELECT_DIFFICULTY:
+                                    </p>
+                                    <div className="flex justify-center gap-2 mb-6">
+                                        {(["easy", "medium", "hard"] as Difficulty[]).map((mode) => {
+                                            const isActive = tempDifficulty === mode;
+                                            const borderColors = {
+                                                easy: "rgba(0, 255, 65, 0.3)",
+                                                medium: "rgba(255, 145, 0, 0.3)",
+                                                hard: "rgba(255, 23, 68, 0.3)",
+                                            };
+                                            const activeColors = {
+                                                easy: "var(--matrix-green)",
+                                                medium: "var(--matrix-warn)",
+                                                hard: "var(--matrix-danger)",
+                                            };
+                                            return (
+                                                <button
+                                                    key={mode}
+                                                    onClick={() => setTempDifficulty(mode)}
+                                                    className={`px-4 py-2 text-[10px] border transition-all duration-300 ${isActive ? 'scale-110' : 'opacity-40'}`}
+                                                    style={{
+                                                        borderColor: isActive ? activeColors[mode] : borderColors[mode],
+                                                        color: isActive ? activeColors[mode] : "var(--matrix-mid)",
+                                                        boxShadow: isActive ? `0 0 10px ${activeColors[mode]}44` : "none",
+                                                        background: isActive ? `${activeColors[mode]}11` : "transparent"
+                                                    }}
+                                                >
+                                                    {mode.toUpperCase()}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[10px] tracking-[0.1em] opacity-40 uppercase h-4">
+                                        {DIFFICULTY_CONFIG[tempDifficulty].desc}
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={() => startGame(tempDifficulty)}
+                                    className="matrix-button w-full py-5 px-10 text-base uppercase font-bold tracking-[0.3em] overflow-hidden group relative"
+                                    style={{
+                                        borderColor: "var(--matrix-green)",
+                                        color: "var(--matrix-green)",
+                                        boxShadow: "0 0 20px rgba(0, 255, 65, 0.2)"
+                                    }}
+                                >
+                                    <span className="relative z-10">[ START_GAME ]</span>
+                                    <div className="absolute inset-0 bg-green-500/10 -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+                                </button>
+                                
+                                <div className="mt-8 pt-8 border-t border-white/5 space-y-1">
+                                    <p className="text-[9px] uppercase tracking-widest opacity-20">
+                                        {">"} Type words to harvest data
+                                    </p>
+                                    <p className="text-[9px] uppercase tracking-widest opacity-20">
+                                        {">"} Chain combos for score multipliers
+                                    </p>
+                                    <p className="text-[9px] uppercase tracking-widest opacity-10">
+                                        {">"} Avoid system failures
+                                    </p>
+                                </div>
                             </div>
                         )}
-                        <button onClick={startGame} className="matrix-button px-10 py-3 rounded text-sm">
-                            {gameOver ? "[ RESTART ]" : "[ START ]"}
-                        </button>
                     </div>
                 )}
             </div>
 
             {/* Footer */}
-            <p
-                className="mt-5 text-[10px] uppercase tracking-[0.5em]"
-                style={{ fontFamily: "var(--font-terminal)", color: "var(--matrix-dark)" }}
-            >
-                sys.exit(0)
-            </p>
+            <div className="mt-6 flex flex-col items-center gap-1 opacity-20">
+                <p
+                    className="text-[10px] uppercase tracking-[0.5em]"
+                    style={{ fontFamily: "var(--font-terminal)", color: "var(--matrix-dark)" }}
+                >
+                    type_rush_v2.0.1
+                </p>
+                <div className="h-0.5 w-32 bg-gradient-to-r from-transparent via-green-500/20 to-transparent" />
+            </div>
         </div>
     );
 }
