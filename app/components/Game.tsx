@@ -14,7 +14,7 @@ const WORDS = [
     "client", "build", "deploy", "style", "script",
 ];
 
-const GAME_HEIGHT = 520;
+const GAME_HEIGHT = 504;
 const SAND_LINE = GAME_HEIGHT - 70;
 const WORDS_PER_WAVE = 8;
 
@@ -98,6 +98,8 @@ export default function Game() {
     const [username, setUsername] = useState("");
     const [usernameError, setUsernameError] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
+    const [profileTab, setProfileTab] = useState<"personal" | "global">("personal");
+    const [identityStatus, setIdentityStatus] = useState<"none" | "checking" | "new" | "existing">("none");
 
     const inputRef = useRef<HTMLInputElement>(null);
     const gameOverRef = useRef(false);
@@ -134,6 +136,11 @@ export default function Game() {
     }, [username]);
 
     /* ── Back to Home ──────────────────────────── */
+    const openProfile = useCallback((tab: "personal" | "global") => {
+        setProfileTab(tab);
+        setShowProfile(true);
+    }, []);
+
     const goHome = useCallback(() => {
         setGameStarted(false);
         setGameOver(false);
@@ -182,6 +189,29 @@ export default function Game() {
             reportScore();
         }
     }, [gameOver, reportScore]);
+
+    /* ── Identity Check ────────────────────────── */
+    useEffect(() => {
+        if (!username.trim() || username.length < 2) {
+            setIdentityStatus("none");
+            return;
+        }
+
+        const checkIdentity = async () => {
+            setIdentityStatus("checking");
+            try {
+                const res = await fetch(`/api/user/check/${encodeURIComponent(username)}`);
+                const { exists } = await res.json();
+                setIdentityStatus(exists ? "existing" : "new");
+            } catch (err) {
+                console.error("Identity check failed:", err);
+                setIdentityStatus("none");
+            }
+        };
+
+        const timer = setTimeout(checkIdentity, 400);
+        return () => clearTimeout(timer);
+    }, [username]);
 
     /* ── Keyboard Shortcuts ─────────────────────── */
     useEffect(() => {
@@ -363,7 +393,7 @@ export default function Game() {
 
             {/* Game Arena */}
             <div
-                className="relative w-full max-w-2xl border-glow scanlines crt-vignette overflow-hidden"
+                className="relative w-full max-w-4xl border-glow scanlines crt-vignette overflow-hidden"
                 style={{
                     height: `${GAME_HEIGHT}px`,
                     borderRadius: "4px",
@@ -559,9 +589,13 @@ export default function Game() {
                         style={{ background: "rgba(0, 0, 0, 0.95)" }}
                     >
                         {showProfile ? (
-                            <Profile username={username} onBack={() => setShowProfile(false)} />
+                            <Profile 
+                                username={username} 
+                                onBack={() => setShowProfile(false)} 
+                                initialTab={profileTab}
+                            />
                         ) : gameOver ? (
-                            <div className="text-center w-full max-w-sm" style={{ fontFamily: "var(--font-terminal)" }}>
+                            <div className="text-center w-full max-w-sm pt-4" style={{ fontFamily: "var(--font-terminal)" }}>
                                 <p className="text-[10px] tracking-[0.4em] uppercase mb-1" style={{ color: "var(--matrix-dark)" }}>
                                     // access_revoked
                                 </p>
@@ -596,29 +630,39 @@ export default function Game() {
                                         <span style={{ color: "var(--matrix-mid)" }}>{wordsHarvested}</span>
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-3">
-                                    <button
-                                        onClick={() => setShowProfile(true)}
-                                        className="matrix-button py-2 px-6 text-xs uppercase tracking-widest text-matrix-bright border-matrix-bright/40"
-                                    >
-                                        [ ACCESS_OPERATOR_RECORDS ]
-                                    </button>
+                                <div className="flex flex-col gap-4">
                                     <button
                                         onClick={() => startGame(difficulty || "medium")}
-                                        className="matrix-button py-3 px-10 text-sm uppercase tracking-widest bg-white/5 hover:bg-white/10"
+                                        className="matrix-button py-4 px-10 text-base uppercase font-bold tracking-[0.2em] bg-green-500/5 hover:bg-green-500/10 border-green-500/50"
                                     >
                                         [ RESTART_SESSION ]
                                     </button>
+                                    
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => openProfile("personal")}
+                                            className="matrix-button flex-1 py-2 px-2 text-[8px] uppercase tracking-widest text-matrix-bright border-matrix-bright/20 opacity-60 hover:opacity-100"
+                                        >
+                                            [ RECORDS ]
+                                        </button>
+                                        <button
+                                            onClick={() => openProfile("global")}
+                                            className="matrix-button flex-1 py-2 px-2 text-[8px] uppercase tracking-widest text-yellow-500 border-yellow-500/20 opacity-60 hover:opacity-100"
+                                        >
+                                            [ LEADERBOARD ]
+                                        </button>
+                                    </div>
+
                                     <button
                                         onClick={goHome}
-                                        className="matrix-button py-2 px-6 text-[10px] uppercase tracking-widest opacity-60 hover:opacity-100"
+                                        className="matrix-button py-2 px-6 text-[10px] uppercase tracking-widest opacity-40 hover:opacity-100 mt-2"
                                     >
                                         [ BACK_TO_HOME ]
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <div className="text-center w-full max-w-sm" style={{ fontFamily: "var(--font-terminal)" }}>
+                            <div className="text-center w-full max-w-sm pt-20" style={{ fontFamily: "var(--font-terminal)" }}>
                                 <p className="text-[10px] tracking-[0.4em] uppercase mb-2" style={{ color: "var(--matrix-dark)" }}>
                                     // connection_established
                                 </p>
@@ -653,6 +697,14 @@ export default function Game() {
                                             className={`w-full bg-black/40 border-b px-2 py-3 text-sm tracking-widest uppercase outline-none transition-all duration-300 placeholder:opacity-20 ${usernameError ? 'border-red-500/50 text-red-400' : 'border-white/10 focus:border-yellow-500/50'}`}
                                             style={{ fontFamily: "var(--font-terminal)", color: "#ffd700" }}
                                         />
+                                        
+                                        {/* Identity Status Feedback */}
+                                        <div className="absolute top-1/2 -translate-y-1/2 right-2 text-[8px] tracking-widest uppercase pointer-events-none transition-all duration-300">
+                                            {identityStatus === "checking" && <span className="opacity-40 animate-pulse">Scanning...</span>}
+                                            {identityStatus === "new" && <span className="text-matrix-green opacity-60">New_Operator</span>}
+                                            {identityStatus === "existing" && <span className="text-yellow-500 opacity-80">Returning_Operator</span>}
+                                        </div>
+
                                         {usernameError && (
                                             <p className="absolute -bottom-5 left-0 text-[8px] tracking-widest text-red-500 uppercase">
                                                 // error: identification_required
@@ -715,13 +767,22 @@ export default function Game() {
                                     </button>
 
                                     {username.trim() && (
-                                        <button
-                                            onClick={() => setShowProfile(true)}
-                                            className="text-[10px] uppercase tracking-widest opacity-40 hover:opacity-100 transition-all underline underline-offset-4"
-                                            style={{ color: "var(--matrix-mid)" }}
-                                        >
-                                            [ VIEW_RECORDS_FOR_"{username.toUpperCase()}" ]
-                                        </button>
+                                        <div className="flex flex-col gap-2">
+                                            <button
+                                                onClick={() => openProfile("personal")}
+                                                className="text-[10px] uppercase tracking-widest opacity-40 hover:opacity-100 transition-all underline underline-offset-4"
+                                                style={{ color: "var(--matrix-mid)" }}
+                                            >
+                                                [ VIEW_RECORDS_FOR_"{username.toUpperCase()}" ]
+                                            </button>
+                                            <button
+                                                onClick={() => openProfile("global")}
+                                                className="text-[10px] uppercase tracking-widest opacity-40 hover:opacity-100 transition-all underline underline-offset-4"
+                                                style={{ color: "#ffd700" }}
+                                            >
+                                                [ VIEW_GLOBAL_LEADERBOARD ]
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
 
