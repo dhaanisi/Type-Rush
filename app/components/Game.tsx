@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Score from "./Score";
 import FallingWord from "./FallingWord";
+import Profile from "./Profile";
 
 /* ── Word Pool ──────────────────────────────────── */
 const WORDS = [
@@ -96,6 +97,7 @@ export default function Game() {
     const [isInputError, setIsInputError] = useState(false);
     const [username, setUsername] = useState("");
     const [usernameError, setUsernameError] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const gameOverRef = useRef(false);
@@ -556,7 +558,9 @@ export default function Game() {
                         className="absolute inset-0 flex flex-col items-center justify-center z-50 p-6"
                         style={{ background: "rgba(0, 0, 0, 0.95)" }}
                     >
-                        {gameOver ? (
+                        {showProfile ? (
+                            <Profile username={username} onBack={() => setShowProfile(false)} />
+                        ) : gameOver ? (
                             <div className="text-center w-full max-w-sm" style={{ fontFamily: "var(--font-terminal)" }}>
                                 <p className="text-[10px] tracking-[0.4em] uppercase mb-1" style={{ color: "var(--matrix-dark)" }}>
                                     // access_revoked
@@ -593,6 +597,12 @@ export default function Game() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={() => setShowProfile(true)}
+                                        className="matrix-button py-2 px-6 text-xs uppercase tracking-widest text-matrix-bright border-matrix-bright/40"
+                                    >
+                                        [ ACCESS_OPERATOR_RECORDS ]
+                                    </button>
                                     <button
                                         onClick={() => startGame(difficulty || "medium")}
                                         className="matrix-button py-3 px-10 text-sm uppercase tracking-widest bg-white/5 hover:bg-white/10"
@@ -685,23 +695,35 @@ export default function Game() {
                                             );
                                         })}
                                     </div>
-                                    <p className="text-[10px] tracking-[0.1em] opacity-40 uppercase h-4">
+                                    <p className="text-[10px] tracking-widest opacity-40 uppercase h-4">
                                         {DIFFICULTY_CONFIG[tempDifficulty].desc}
                                     </p>
                                 </div>
 
-                                <button
-                                    onClick={() => startGame(tempDifficulty)}
-                                    className="matrix-button w-full py-5 px-10 text-base uppercase font-bold tracking-[0.3em] overflow-hidden group relative"
-                                    style={{
-                                        borderColor: "var(--matrix-green)",
-                                        color: "var(--matrix-green)",
-                                        boxShadow: "0 0 20px rgba(0, 255, 65, 0.2)"
-                                    }}
-                                >
-                                    <span className="relative z-10">[ START_GAME ]</span>
-                                    <div className="absolute inset-0 bg-green-500/10 -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
-                                </button>
+                                <div className="flex flex-col gap-4 w-full">
+                                    <button
+                                        onClick={() => startGame(tempDifficulty)}
+                                        className="matrix-button w-full py-5 px-10 text-base uppercase font-bold tracking-[0.3em] overflow-hidden group relative"
+                                        style={{
+                                            borderColor: "var(--matrix-green)",
+                                            color: "var(--matrix-green)",
+                                            boxShadow: "0 0 20px rgba(0, 255, 65, 0.2)"
+                                        }}
+                                    >
+                                        <span className="relative z-10">[ START_GAME ]</span>
+                                        <div className="absolute inset-0 bg-green-500/10 -translate-x-full group-hover:translate-x-0 transition-transform duration-300" />
+                                    </button>
+
+                                    {username.trim() && (
+                                        <button
+                                            onClick={() => setShowProfile(true)}
+                                            className="text-[10px] uppercase tracking-widest opacity-40 hover:opacity-100 transition-all underline underline-offset-4"
+                                            style={{ color: "var(--matrix-mid)" }}
+                                        >
+                                            [ VIEW_RECORDS_FOR_"{username.toUpperCase()}" ]
+                                        </button>
+                                    )}
+                                </div>
 
                                 <div className="mt-8 pt-8 border-t border-white/5 space-y-1">
                                     <p className="text-[9px] uppercase tracking-widest opacity-20">

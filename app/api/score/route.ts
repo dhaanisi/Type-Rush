@@ -6,8 +6,15 @@ export async function POST(req: Request) {
 
     const player = await prisma.player.upsert({
         where: { username },
-        update: {},
-        create: { username },
+        update: {
+            bestScore: {
+                set: await (async () => {
+                    const p = await prisma.player.findUnique({ where: { username } });
+                    return Math.max(p?.bestScore || 0, score);
+                })()
+            }
+        },
+        create: { username, bestScore: score },
     });
 
     await prisma.gameScore.create({
