@@ -93,6 +93,7 @@ export default function Game() {
     const [particles, setParticles] = useState<Particle[]>([]);
     const [scorePops, setScorePops] = useState<ScorePop[]>([]);
     const [warning, setWarning] = useState<string | null>(null);
+    const [isInputError, setIsInputError] = useState(false);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const gameOverRef = useRef(false);
@@ -265,6 +266,25 @@ export default function Game() {
             }
         },
         [gameStarted, gameOver, isPaused, fallingWords, combo, spawnParticles]
+    );
+
+    const handleKeyDown = useCallback(
+        (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (!gameStarted || gameOver || isPaused) return;
+            if (e.key === "Enter" || e.key === " ") {
+                const trimmedInput = input.trim().toLowerCase();
+                const matched = fallingWords.find((w) => w.text === trimmedInput);
+                
+                if (!matched && trimmedInput.length > 0) {
+                    setIsInputError(true);
+                    setTimeout(() => setIsInputError(false), 400);
+                }
+                
+                setInput("");
+                if (e.key === " ") e.preventDefault();
+            }
+        },
+        [gameStarted, gameOver, isPaused, input, fallingWords]
     );
 
     /* ── Lives Display ─────────────────────────── */
@@ -445,30 +465,57 @@ export default function Game() {
                                     // system_halted
                                 </p>
                                 <h2 className="text-3xl mb-8 uppercase tracking-[0.2em]" style={{ color: "var(--matrix-warn)" }}>PAUSED</h2>
-                                <button
-                                    onClick={() => setIsPaused(false)}
-                                    className="matrix-button py-3 px-10 text-sm uppercase tracking-widest"
-                                >
-                                    [ RESUME_SESSION ]
-                                </button>
+                                <div className="flex flex-col gap-4">
+                                    <button
+                                        onClick={() => setIsPaused(false)}
+                                        className="matrix-button py-3 px-10 text-sm uppercase tracking-widest"
+                                    >
+                                        [ RESUME_SESSION ]
+                                    </button>
+                                    <button
+                                        onClick={abortSession}
+                                        className="matrix-button py-2 px-8 text-xs uppercase tracking-widest opacity-60 hover:opacity-100 transition-all"
+                                        style={{ borderColor: "rgba(255, 23, 68, 0.4)", color: "var(--matrix-danger)" }}
+                                    >
+                                        [ QUIT_SESSION ]
+                                    </button>
+                                </div>
                             </div>
                         )}
 
                         {/* Input Area */}
                         <div className="absolute bottom-3 left-0 right-0 px-8 z-30">
-                            <div className="flex items-center gap-2 max-w-sm mx-auto">
-                                <span className="text-sm font-terminal" style={{ color: !isPaused ? "var(--matrix-green)" : "var(--matrix-dark)" }}>{">"}</span>
-                                <input
-                                    ref={inputRef}
-                                    autoFocus
-                                    disabled={isPaused}
-                                    value={input}
-                                    onChange={handleChange}
-                                    className={`matrix-input flex-1 px-4 py-2.5 rounded text-lg text-center transition-opacity ${isPaused ? 'opacity-20' : 'opacity-100'}`}
-                                    placeholder={isPaused ? "STANDBY..." : "type here..."}
-                                    spellCheck={false}
-                                    autoComplete="off"
-                                />
+                            <div className="flex flex-col items-center gap-1.5 max-w-sm mx-auto">
+                                <div className="flex items-center gap-2 w-full">
+                                    <span className="text-sm font-terminal" style={{ color: !isPaused ? "var(--matrix-green)" : "var(--matrix-dark)" }}>{">"}</span>
+                                    <div className="relative flex-1">
+                                        <input
+                                            ref={inputRef}
+                                            autoFocus
+                                            disabled={isPaused}
+                                            value={input}
+                                            onChange={handleChange}
+                                            onKeyDown={handleKeyDown}
+                                            className={`matrix-input w-full px-4 py-2.5 rounded text-lg text-center transition-all ${isPaused ? 'opacity-20' : 'opacity-100'} ${isInputError ? 'shake' : ''}`}
+                                            placeholder={isPaused ? "STANDBY..." : "type here..."}
+                                            spellCheck={false}
+                                            autoComplete="off"
+                                        />
+                                        {/* Manual Clear Option */}
+                                        {input && !isPaused && (
+                                            <button
+                                                onClick={() => { setInput(""); inputRef.current?.focus(); }}
+                                                className="clear-button absolute right-2 top-1/2 -translate-y-1/2"
+                                                title="Clear (Space/Enter)"
+                                            >
+                                                [X]
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="text-[9px] uppercase tracking-[0.2em] opacity-30 flex gap-4">
+                                    <span>[SPACE/ENTER] TO CLEAR</span>
+                                </div>
                             </div>
                         </div>
                     </>

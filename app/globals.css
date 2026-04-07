@@ -247,3 +247,36 @@ body {
 .corner-bracket--tr { top: 8px; right: 8px; border-top: 1px solid var(--matrix-green); border-right: 1px solid var(--matrix-green); }
 .corner-bracket--bl { bottom: 8px; left: 8px; border-bottom: 1px solid var(--matrix-green); border-left: 1px solid var(--matrix-green); }
 .corner-bracket--br { bottom: 8px; right: 8px; border-bottom: 1px solid var(--matrix-green); border-right: 1px solid var(--matrix-green); }
+
+/* ── Shake Animation ───────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+}
+
+.shake {
+  animation: shake 0.2s ease-in-out 2;
+  border-color: var(--matrix-danger) !important;
+  box-shadow: 0 0 15px rgba(255, 23, 68, 0.4) !important;
+}
+
+/* ── Clear Button ──────────────────────────────── */
+.clear-button {
+  background: transparent;
+  color: var(--matrix-dim);
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: var(--font-terminal);
+  font-size: 10px;
+  transition: all 0.2s ease;
+  opacity: 0.5;
+}
+
+.clear-button:hover {
+  color: var(--matrix-danger);
+  opacity: 1;
+  text-shadow: 0 0 8px rgba(255, 23, 68, 0.5);
+}
