@@ -4,15 +4,12 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
     const { username, score, difficulty, maxCombo } = await req.json();
 
+    const existingPlayer = await prisma.player.findUnique({ where: { username } });
+
     const player = await prisma.player.upsert({
         where: { username },
         update: {
-            bestScore: {
-                set: await (async () => {
-                    const p = await prisma.player.findUnique({ where: { username } });
-                    return Math.max(p?.bestScore || 0, score);
-                })()
-            }
+            bestScore: Math.max(existingPlayer?.bestScore || 0, score)
         },
         create: { username, bestScore: score },
     });

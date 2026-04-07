@@ -201,10 +201,16 @@ export default function Game() {
             setIdentityStatus("checking");
             try {
                 const res = await fetch(`/api/user/check/${encodeURIComponent(username)}`);
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    console.error("Identity check failed server-side:", errData);
+                    setIdentityStatus("none");
+                    return;
+                }
                 const { exists } = await res.json();
                 setIdentityStatus(exists ? "existing" : "new");
             } catch (err) {
-                console.error("Identity check failed:", err);
+                console.error("Identity check failed network-side:", err);
                 setIdentityStatus("none");
             }
         };
