@@ -100,6 +100,7 @@ export default function Game() {
     const [showProfile, setShowProfile] = useState(false);
     const [profileTab, setProfileTab] = useState<"personal" | "global">("personal");
     const [identityStatus, setIdentityStatus] = useState<"none" | "checking" | "new" | "existing">("none");
+    const [timeElapsed, setTimeElapsed] = useState(0);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const gameOverRef = useRef(false);
@@ -132,6 +133,7 @@ export default function Game() {
         setParticles([]);
         setScorePops([]);
         setWarning(null);
+        setTimeElapsed(0);
         setTimeout(() => inputRef.current?.focus(), 100);
     }, [username]);
 
@@ -157,6 +159,7 @@ export default function Game() {
         setParticles([]);
         setScorePops([]);
         setWarning(null);
+        setTimeElapsed(0);
     }, []);
 
     /* ── Abort Session ─────────────────────────── */
@@ -177,6 +180,7 @@ export default function Game() {
                     score,
                     difficulty: (difficulty || tempDifficulty).toUpperCase(),
                     maxCombo,
+                    duration: timeElapsed,
                 }),
             });
         } catch (err) {
@@ -250,6 +254,15 @@ export default function Game() {
         }, spawnInterval);
         return () => clearInterval(interval);
     }, [gameStarted, gameOver, isPaused, spawnInterval]);
+
+    /* ── Play Timer ────────────────────────────── */
+    useEffect(() => {
+        if (!gameStarted || gameOver || isPaused) return;
+        const interval = setInterval(() => {
+            setTimeElapsed((prev) => prev + 1);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [gameStarted, gameOver, isPaused]);
 
     /* ── Move Words (rAF) ──────────────────────── */
     useEffect(() => {
@@ -434,7 +447,7 @@ export default function Game() {
                     <>
                         {/* Status bar */}
                         <div className="absolute top-4 left-5 right-5 z-20 flex justify-between items-start">
-                            <Score score={score} combo={combo} wave={wave} wordsHarvested={wordsHarvested} />
+                            <Score score={score} combo={combo} wave={wave} wordsHarvested={wordsHarvested} duration={timeElapsed} />
                             <div className="flex flex-col items-end gap-3">
                                 {renderLives()}
                                 <div className="flex gap-2">
@@ -634,6 +647,12 @@ export default function Game() {
                                     <div className="flex justify-between items-center text-xs">
                                         <span style={{ color: "var(--matrix-dark)" }}>WORDS_TYPED</span>
                                         <span style={{ color: "var(--matrix-mid)" }}>{wordsHarvested}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span style={{ color: "var(--matrix-dark)" }}>SESSION_TIME</span>
+                                        <span style={{ color: "var(--matrix-mid)" }}>
+                                            {Math.floor(timeElapsed / 60)}:{(timeElapsed % 60).toString().padStart(2, "0")}
+                                        </span>
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-4">

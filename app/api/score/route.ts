@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-    const { username, score, difficulty, maxCombo } = await req.json();
+    const { username, score, difficulty, maxCombo, duration } = await req.json();
 
     const existingPlayer = await prisma.player.findUnique({ where: { username } });
 
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
             score,
             difficulty,
             maxCombo,
+            duration: duration || 0,
             playerId: player.id,
         },
     });

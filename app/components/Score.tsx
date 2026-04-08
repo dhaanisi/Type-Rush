@@ -5,9 +5,10 @@ interface ScoreProps {
     combo: number;
     wave: number;
     wordsHarvested: number;
+    duration: number;
 }
 
-export default function Score({ score, combo, wave, wordsHarvested }: ScoreProps) {
+export default function Score({ score, combo, wave, wordsHarvested, duration }: ScoreProps) {
     return (
         <div className="flex flex-col gap-1 select-none" style={{ fontFamily: "var(--font-terminal)" }}>
             {/* Score */}
@@ -46,7 +47,7 @@ export default function Score({ score, combo, wave, wordsHarvested }: ScoreProps
                 </div>
             )}
 
-            {/* Wave & Harvested */}
+            {/* Wave & Harvested & Timer */}
             <div className="flex items-center gap-4 mt-1">
                 <span
                     className="text-[10px] uppercase tracking-[0.3em]"
@@ -59,6 +60,12 @@ export default function Score({ score, combo, wave, wordsHarvested }: ScoreProps
                     style={{ color: "var(--matrix-dark)" }}
                 >
                     [{wordsHarvested} typed]
+                </span>
+                <span
+                    className="text-[10px] uppercase tracking-[0.3em]"
+                    style={{ color: "var(--matrix-mid)" }}
+                >
+                    [{Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, "0")}]
                 </span>
             </div>
         </div>

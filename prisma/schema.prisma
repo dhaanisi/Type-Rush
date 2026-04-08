@@ -23,6 +23,7 @@ model GameScore {
   score      Int
   difficulty Difficulty
   maxCombo   Int
+  duration   Int        @default(0)
   createdAt  DateTime   @default(now())
   player     Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
 

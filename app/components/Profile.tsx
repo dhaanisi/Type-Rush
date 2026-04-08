@@ -15,6 +15,7 @@ interface ProfileData {
     bestScore: number;
     rank: number;
     totalGames: number;
+    totalPlayTime: number;
     avgScore: number;
     commissionedAt: string;
 }
@@ -119,6 +120,12 @@ export default function Profile({ username, onBack, initialTab = "personal" }: P
                         <div className="border border-matrix-mid/10 p-2 bg-matrix-green/5">
                             <p className="text-[8px] opacity-30 mb-0.5 uppercase">Avg</p>
                             <p className="text-lg text-matrix-bright">{data.avgScore}</p>
+                        </div>
+                        <div className="border border-matrix-mid/10 p-2 bg-matrix-green/5">
+                            <p className="text-[8px] opacity-30 mb-0.5 uppercase">Play Time</p>
+                            <p className="text-lg text-matrix-bright">
+                                {Math.floor(data.totalPlayTime / 60)}:{(data.totalPlayTime % 60).toString().padStart(2, "0")}
+                            </p>
                         </div>
                     </div>
 

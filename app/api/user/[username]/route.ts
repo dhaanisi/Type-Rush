@@ -32,6 +32,7 @@ export async function GET(
 
     // Calculate Statistics
     const totalGames = await prisma.gameScore.count({ where: { playerId: player.id } });
+    const totalPlayTime = player.gameScores.reduce((acc, s) => acc + (s.duration || 0), 0);
     const avgScore = player.gameScores.length > 0
         ? Math.floor(player.gameScores.reduce((acc, s) => acc + s.score, 0) / player.gameScores.length)
         : 0;
@@ -42,6 +43,7 @@ export async function GET(
             bestScore: player.bestScore,
             rank: rank + 1,
             totalGames,
+            totalPlayTime,
             avgScore,
             commissionedAt: player.createdAt,
         },
